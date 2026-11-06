@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: postverify-ng
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: NIPOST_BASE_URL
+        value: https://api.postcode.gov.ng
+      - key: NIPOST_API_KEY
+        sync: false
+      - key: NIPOST_PUBLISHABLE_KEY
+        sync: false
+

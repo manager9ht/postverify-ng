@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PostVerify NG | Built on Nigeria's Postcode (NDAPS Enterprise KYC)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Leaflet.js Interactive Mapping -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              900: '#0B2545',
+              800: '#13315C',
+              700: '#134074',
+            },
+            gold: {
+              500: '#D4AF37',
+              400: '#E5C158',
+              600: '#B59024',
+            }
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at top right, #EEF3FA 0%, #F7F9FC 55%, #EDF2F8 100%);
+      color: #0B2545;
+    }
+
+    /* Signature 3D Light Theme Card System */
+    .card-3d {
+      background: linear-gradient(180deg, #FFFFFF 0%, #FAFBFD 100%);
+      border: 1px solid rgba(11, 37, 69, 0.10);
+      border-bottom: 3px solid rgba(11, 37, 69, 0.16);
+      border-radius: 1rem;
+      box-shadow:
+        0 14px 28px -10px rgba(11, 37, 69, 0.08),
+        0 4px 10px -2px rgba(11, 37, 69, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .card-3d:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 20px 34px -12px rgba(11, 37, 69, 0.13),
+        0 6px 14px -3px rgba(11, 37, 69, 0.06),
+        inset 0 1px 0 0 rgba(255, 255, 255, 1);
+    }
+
+    .card-3d-gold {
+      background: linear-gradient(180deg, #FFFFFF 0%, #FCFBF7 100%);
+      border: 1.5px solid #D4AF37;
+      border-bottom: 4px solid #B59024;
+      border-radius: 1rem;
+      box-shadow:
+        0 18px 36px -12px rgba(11, 37, 69, 0.14),
+        0 6px 16px -4px rgba(212, 175, 55, 0.18),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+    }
+
+    .btn-3d-navy {
+      background: linear-gradient(180deg, #13315C 0%, #0B2545 100%);
+      border: 1px solid #D4AF37;
+      border-bottom: 3px solid #061529;
+      box-shadow: 0 8px 18px -4px rgba(11, 37, 69, 0.35);
+      transition: all 0.15s ease;
+    }
+
+    .btn-3d-navy:hover {
+      background: linear-gradient(180deg, #173B6E 0%, #0E2D54 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px -4px rgba(11, 37, 69, 0.45);
+    }
+
+    .btn-3d-navy:active {
+      transform: translateY(1px);
+    }
+
+    #nipost-map {
+      height: 270px;
+      width: 100%;
+      border-radius: 0.75rem;
+      z-index: 10;
+    }
+
+    @media print {
+      body {
+        background: #FFFFFF !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #certificate-card {
+        box-shadow: none !important;
+        border: 2px solid #0B2545 !important;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+
+  <!-- Top Sticky Header in Deep Blue (#0B2545) with Gold Borders (#D4AF37) -->
+  <header class="sticky top-0 z-40 bg-[#0B2545] text-white border-b-2 border-[#D4AF37] shadow-xl no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex items-center gap-3.5">
+        <div class="h-11 w-11 rounded-xl bg-[#13315C] border-2 border-[#D4AF37] flex items-center justify-center shadow-md">
+          <i data-lucide="shield-check" class="w-6 h-6 text-[#D4AF37]"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <span class="text-lg sm:text-xl font-extrabold tracking-tight text-white">
+              PostVerify <span class="text-[#D4AF37]">NG</span>
+            </span>
+            <span class="text-xs font-semibold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50">
+              NDAPS Sovereign KYC
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 mt-0.5">
+            Powered by NIPOST Digital Postcode API • 3MTT × NIPOST "Built on Nigeria's Postcode" Pitch Series
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 self-start md:self-auto">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#13315C] border border-[#D4AF37]/60 text-amber-100 shadow-inner">
+          <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="gateway-status-label">NDAPS Gateway Active: api.postcode.gov.ng/v1</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- 4 Executive KPI Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+      <!-- KPI 1: Verifications Run -->
+      <div class="card-3d p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Verifications Run</span>
+          <div class="h-9 w-9 rounded-xl bg-[#0B2545] text-[#D4AF37] flex items-center justify-center shadow-sm">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-verified" class="text-2xl font-extrabold font-mono text-[#0B2545]">{{ stats.total_verified }}</span>
+          <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Live Counter</span>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">
+          Fraud / GPS Mismatches Flagged: <span id="kpi-fraud" class="font-mono font-bold text-red-600">{{ stats.fraud_flagged }}</span>
+        </p>
+      </div>
+
+      <!-- KPI 2: Naira Saved for Banks/DisCos -->
+      <div class="card-3d p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Naira Saved (Banks/DisCos)</span>
+          <div class="h-9 w-9 rounded-xl bg-[#0B2545] text-[#D4AF37] flex items-center justify-center shadow-sm">
+            <i data-lucide="landmark" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-saved" class="text-2xl font-extrabold font-mono text-emerald-700">₦{{ "{:,}".format(stats.naira_saved) }}</span>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">
+          vs. ₦4,500 per physical field agent visit
+        </p>
+      </div>
+
+      <!-- KPI 3: Average API Speed -->
+      <div class="card-3d p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Average API Speed</span>
+          <div class="h-9 w-9 rounded-xl bg-[#0B2545] text-[#D4AF37] flex items-center justify-center shadow-sm">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-latency" class="text-2xl font-extrabold font-mono text-[#0B2545]">{{ stats.avg_latency_ms }} ms</span>
+          <span class="text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Instant KYC</span>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">
+          Replaces 48–72 hr manual address verification
+        </p>
+      </div>
+
+      <!-- KPI 4: Active Access Level -->
+      <div class="card-3d p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Active Access Level</span>
+          <div class="h-9 w-9 rounded-xl bg-[#0B2545] text-[#D4AF37] flex items-center justify-center shadow-sm">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-access" class="text-lg font-extrabold font-mono text-[#0B2545]">{{ stats.access_level }}</span>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">
+          11-Char Building Unit &amp; Geolocation Precision
+        </p>
+      </div>
+    </section>
+
+    <!-- Main 2-Column Enterprise Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- Left Panel: Inputs, One-Click Presets, Fraud Toggle & 5-Segment Hierarchy Decoder -->
+      <div class="lg:col-span-5 space-y-6 no-print">
+
+        <!-- Verification Console Card -->
+        <div class="card-3d p-5 space-y-5">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3.5">
+            <div class="flex items-center gap-2.5">
+              <div class="p-2 rounded-lg bg-[#0B2545] text-[#D4AF37]">
+                <i data-lucide="Compass" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h2 class="text-base font-extrabold text-[#0B2545]">Enterprise KYC &amp; Building Verification</h2>
+                <p class="text-[11px] text-slate-500">Query live NIPOST `/v1/lookup` + `/v1/search/autocomplete`</p>
+              </div>
+            </div>
+            <span class="text-[11px] font-mono font-bold px-2.5 py-1 rounded-md bg-[#0B2545] text-[#D4AF37] border border-[#D4AF37]">
+              11-CHAR CODE
+            </span>
+          </div>
+
+          <!-- One-Click Preset Buttons: Abuja, Damaturu, Kano -->
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+              One-Click Regional &amp; Official Sandbox Presets
+            </label>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onclick="loadPreset('FC-01-A01-KP-27', 'Amina Bello Danjuma', '4829', 'CBN Tier-3 Bank KYC')"
+                class="text-left p-2.5 rounded-xl bg-slate-50 hover:bg-[#0B2545] hover:text-white border border-slate-200 hover:border-[#D4AF37] transition group shadow-sm cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 group-hover:text-[#D4AF37]">Abuja (FCT)</span>
+                  <i data-lucide="map-pin" class="w-3 h-3 text-[#0B2545] group-hover:text-[#D4AF37]"></i>
+                </div>
+                <div class="font-mono text-xs font-extrabold text-[#0B2545] group-hover:text-white mt-0.5">FC-01-A01-KP-27</div>
+                <div class="text-[10px] text-slate-500 group-hover:text-slate-300 truncate">Garki Area 11</div>
+              </button>
+
+              <button
+                type="button"
+                onclick="loadPreset('YB-01-A01-DM-12', 'Modu Kyari Sherriff', '6402', 'Solar & Mobile Device BNPL Financing')"
+                class="text-left p-2.5 rounded-xl bg-slate-50 hover:bg-[#0B2545] hover:text-white border border-slate-200 hover:border-[#D4AF37] transition group shadow-sm cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 group-hover:text-[#D4AF37]">Damaturu</span>
+                  <i data-lucide="map-pin" class="w-3 h-3 text-[#0B2545] group-hover:text-[#D4AF37]"></i>
+                </div>
+                <div class="font-mono text-xs font-extrabold text-[#0B2545] group-hover:text-white mt-0.5">YB-01-A01-DM-12</div>
+                <div class="text-[10px] text-slate-500 group-hover:text-slate-300 truncate">Maiduguri Rd, Yobe</div>
+              </button>
+
+              <button
+                type="button"
+                onclick="loadPreset('KN-31-F82-WJ-80', 'Alhaji Musa Abdullahi', '2098', 'Microfinance SME Credit')"
+                class="text-left p-2.5 rounded-xl bg-slate-50 hover:bg-[#0B2545] hover:text-white border border-slate-200 hover:border-[#D4AF37] transition group shadow-sm cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 group-hover:text-[#D4AF37]">Kano</span>
+                  <i data-lucide="map-pin" class="w-3 h-3 text-[#0B2545] group-hover:text-[#D4AF37]"></i>
+                </div>
+                <div class="font-mono text-xs font-extrabold text-[#0B2545] group-hover:text-white mt-0.5">KN-31-F82-WJ-80</div>
+                <div class="text-[10px] text-slate-500 group-hover:text-slate-300 truncate">Bompai / Waje</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Input Form -->
+          <form id="kyc-form" class="space-y-4" onsubmit="submitVerification(event)">
+            <div>
+              <label for="postcode-input" class="block text-xs font-bold text-[#0B2545] mb-1.5">
+                11-Character Nigerian Digital Postcode
+              </label>
+              <div class="relative">
+                <input
+                  id="postcode-input"
+                  name="postcode"
+                  type="text"
+                  value="FC-01-A01-KP-27"
+                  maxlength="15"
+                  required
+                  oninput="updateLiveDecoder(this.value)"
+                  placeholder="e.g. FC-01-A01-KP-27"
+                  class="w-full rounded-xl bg-slate-50 border-2 border-slate-300 focus:border-[#0B2545] focus:bg-white px-3.5 py-2.5 font-mono text-sm font-extrabold tracking-wider text-[#0B2545] uppercase outline-none transition"
+                />
+                <span class="absolute right-3 top-2.5 text-[11px] font-mono font-semibold text-[#0B2545] bg-amber-100/80 px-2 py-0.5 rounded border border-[#D4AF37]">
+                  XX-XX-XXX-XX-XX
+                </span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="sm:col-span-2">
+                <label for="full-name-input" class="block text-xs font-bold text-[#0B2545] mb-1.5">
+                  Customer / Merchant Full Name
+                </label>
+                <input
+                  id="full-name-input"
+                  name="full_name"
+                  type="text"
+                  value="Amina Bello Danjuma"
+                  required
+                  class="w-full rounded-xl bg-slate-50 border border-slate-300 focus:border-[#0B2545] focus:bg-white px-3.5 py-2 text-sm font-semibold text-[#0B2545] outline-none transition"
+                />
+              </div>
+              <div>
+                <label for="nin-input" class="block text-xs font-bold text-[#0B2545] mb-1.5">
+                  NIN Last 4
+                </label>
+                <input
+                  id="nin-input"
+                  name="nin_last4"
+                  type="text"
+                  value="4829"
+                  maxlength="4"
+                  required
+                  class="w-full rounded-xl bg-slate-50 border border-slate-300 focus:border-[#0B2545] focus:bg-white px-3.5 py-2 font-mono text-sm font-bold text-[#0B2545] outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label for="use-case-input" class="block text-xs font-bold text-[#0B2545] mb-1.5">
+                Institution Sector Selector
+              </label>
+              <select
+                id="use-case-input"
+                name="use_case"
+                class="w-full rounded-xl bg-slate-50 border border-slate-300 focus:border-[#0B2545] focus:bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0B2545] outline-none transition"
+              >
+                <option value="CBN Tier-3 Bank KYC">CBN Tier-3 Bank KYC</option>
+                <option value="Electricity DisCo Prepaid Meter Enumeration">Electricity DisCo Prepaid Meter Enumeration</option>
+                <option value="Solar & Mobile Device BNPL Financing">Solar &amp; Mobile Device BNPL Financing</option>
+                <option value="Microfinance SME Credit">Microfinance SME Credit</option>
+              </select>
+            </div>
+
+            <!-- Interactive "Simulate Field Fraud / GPS Mismatch" Toggle -->
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-amber-50/70 border border-[#D4AF37]/60">
+              <div class="pr-3">
+                <div class="text-xs font-extrabold text-[#0B2545] flex items-center gap-1.5">
+                  <i data-lucide="shield-alert" class="w-4 h-4 text-red-600"></i>
+                  <span>Simulate Field Fraud / GPS Mismatch</span>
+                </div>
+                <p class="text-[11px] text-slate-600 mt-0.5">
+                  Triggers a 420km remote GPS spoofing alert vs. 4.2m building pin match
+                </p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  id="simulate-fraud-toggle"
+                  type="checkbox"
+                  onchange="submitVerification()"
+                  class="sr-only peer"
+                />
+                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+              </label>
+            </div>
+
+            <button
+              id="verify-submit-btn"
+              type="submit"
+              class="btn-3d-navy w-full py-3 px-4 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <i data-lucide="shield-check" class="w-4 h-4 text-[#D4AF37]"></i>
+              <span>Verify Postcode &amp; Generate Sovereign KYC Certificate</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- 5-Segment National Postcode Hierarchy Decoder -->
+        <div class="card-3d p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="network" class="w-4 h-4 text-[#0B2545]"></i>
+              <h3 class="text-sm font-extrabold text-[#0B2545]">5-Segment National Postcode Hierarchy Decoder</h3>
+            </div>
+            <span class="text-[11px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-[#D4AF37]">
+              NDAPS Standard
+            </span>
+          </div>
+
+          <div class="grid grid-cols-5 gap-2 text-center">
+            <div class="p-2.5 rounded-xl bg-[#0B2545] text-white border-b-4 border-[#D4AF37] shadow-sm">
+              <div class="text-[10px] uppercase tracking-wider text-amber-200 font-semibold">1. State</div>
+              <div id="seg-state-code" class="text-base font-mono font-extrabold text-[#D4AF37] mt-0.5">FC</div>
+              <div id="seg-state-desc" class="text-[10px] text-slate-200 truncate mt-0.5">FCT Abuja</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 border-b-4 border-b-[#0B2545]">
+              <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">2. LGA</div>
+              <div id="seg-lga-code" class="text-base font-mono font-extrabold text-[#0B2545] mt-0.5">01</div>
+              <div id="seg-lga-desc" class="text-[10px] text-slate-600 truncate mt-0.5">AMAC</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 border-b-4 border-b-[#134074]">
+              <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">3. District</div>
+              <div id="seg-district-code" class="text-base font-mono font-extrabold text-[#134074] mt-0.5">A01</div>
+              <div id="seg-district-desc" class="text-[10px] text-slate-600 truncate mt-0.5">Garki</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 border-b-4 border-b-amber-600">
+              <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">4. Area</div>
+              <div id="seg-area-code" class="text-base font-mono font-extrabold text-amber-700 mt-0.5">KP</div>
+              <div id="seg-area-desc" class="text-[10px] text-slate-600 truncate mt-0.5">Area 11</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 border-b-4 border-b-emerald-600">
+              <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">5. Building</div>
+              <div id="seg-building-code" class="text-base font-mono font-extrabold text-emerald-700 mt-0.5">27</div>
+              <div id="seg-building-desc" class="text-[10px] text-slate-600 truncate mt-0.5">Unit #27</div>
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-600 bg-slate-100 rounded-xl px-3.5 py-2.5 flex items-center justify-between font-medium">
+            <span>Alphanumeric Structure:</span>
+            <span class="font-mono text-[11px] font-bold text-[#0B2545]">State(2) • LGA(2) • District(3) • Area(2) • Building(2)</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Panel: Interactive Leaflet Map, Digital Certificate & Live Telemetry Inspector -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Leaflet.js Interactive Map Preview Card -->
+        <div class="card-3d p-5 space-y-3 no-print">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <div class="p-2 rounded-lg bg-[#0B2545] text-[#D4AF37]">
+                <i data-lucide="map-pinned" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-extrabold text-[#0B2545]">NIPOST Geolocation &amp; Building Footprint Map</h3>
+                <p id="map-subtitle" class="text-xs text-slate-500">
+                  Live satellite-indexed building pin &amp; 50m KYC geofence verification
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="map-coords-pill" class="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-[#0B2545] border border-slate-300">
+                9.0385° N, 7.4982° E
+              </span>
+              <span id="map-gps-pill" class="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300">
+                4.2m Match
+              </span>
+            </div>
+          </div>
+
+          <div id="nipost-map" class="border-2 border-[#0B2545]/15 shadow-inner"></div>
+        </div>
+
+        <!-- Official Printable/Exportable Digital Proof-of-Address Certificate Card -->
+        <div id="certificate-card" class="card-3d-gold p-6 relative overflow-hidden">
+          <!-- Header Banner -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-[#0B2545]/10 pb-4">
+            <div class="flex items-start gap-3.5">
+              <div class="p-3 rounded-xl bg-[#0B2545] text-[#D4AF37] border border-[#D4AF37] shadow-md">
+                <i data-lucide="award" class="w-6 h-6"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-mono uppercase tracking-widest text-[#0B2545] font-extrabold">
+                    FEDERAL REPUBLIC OF NIGERIA • NDAPS DIGITAL PROOF-OF-ADDRESS
+                  </span>
+                </div>
+                <h2 class="text-lg font-extrabold text-[#0B2545] mt-0.5">
+                  Official PostVerify NG Tier-3 KYC Verification Certificate
+                </h2>
+                <p class="text-xs text-slate-600">
+                  Authenticated via NIPOST Digital Alphanumeric Postcode System (L1 + L3 Geolocation Registry)
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-start sm:items-end gap-1.5">
+              <span id="cert-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-400">
+                <i data-lucide="badge-check" class="w-3.5 h-3.5"></i>
+                <span id="cert-status-text">TIER-3 KYC VERIFIED</span>
+              </span>
+              <span id="cert-id" class="font-mono text-xs font-bold text-[#0B2545]">ID: PVNG-8F92A104C3B1</span>
+            </div>
+          </div>
+
+          <!-- Certificate Main Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-5 py-5 border-b-2 border-[#0B2545]/10">
+            <div class="md:col-span-8 space-y-3.5">
+              <!-- Subject, NIN, Postcode -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Verified Subject</div>
+                  <div id="cert-customer-name" class="text-sm font-extrabold text-[#0B2545] mt-0.5 truncate">Amina Bello Danjuma</div>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Masked NIN</div>
+                  <div id="cert-nin" class="text-sm font-mono font-extrabold text-[#0B2545] mt-0.5">*******4829</div>
+                </div>
+                <div class="col-span-2 sm:col-span-1 bg-[#0B2545] text-white border border-[#D4AF37] rounded-xl p-3">
+                  <div class="text-[10px] uppercase tracking-wider text-amber-200 font-bold">Digital Postcode</div>
+                  <div id="cert-postcode" class="text-sm font-mono font-extrabold text-[#D4AF37] mt-0.5">FC-01-A01-KP-27</div>
+                </div>
+              </div>
+
+              <!-- Verified Street Address & Building Use Classification -->
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                    Verified Street &amp; Property Address
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <span id="cert-building-use" class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded bg-[#0B2545] text-[#D4AF37]">
+                      COMMERCIAL
+                    </span>
+                    <span id="cert-trust-badge" class="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-[#D4AF37]">
+                      99.4 / 100 • TIER-3 SOVEREIGN GRADE
+                    </span>
+                  </div>
+                </div>
+                <div id="cert-address" class="text-sm font-extrabold text-[#0B2545] mt-1.5">
+                  Plot 27, Kashim Ibrahim Way, Garki Area 11, Abuja FCT
+                </div>
+                <div class="text-xs text-slate-600 mt-1">
+                  Sector Use Case: <span id="cert-use-case" class="font-bold text-[#0B2545]">CBN Tier-3 Bank KYC</span>
+                </div>
+              </div>
+
+              <!-- Hierarchy & Geolocation Proximity -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Administrative Hierarchy</div>
+                  <div id="cert-hierarchy" class="text-xs font-bold text-[#0B2545] mt-1">
+                    FCT Abuja → AMAC → Garki / Area 11 District
+                  </div>
+                  <div id="cert-coords" class="text-[11px] font-mono text-slate-600 mt-1">
+                    NIPOST Pin: 9.0385° N, 7.4982° E
+                  </div>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col justify-between">
+                  <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Geolocation Proximity Audit</div>
+                  <div class="mt-1">
+                    <span id="cert-gps-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-400">
+                      <i data-lucide="locate-fixed" class="w-3.5 h-3.5"></i>
+                      <span id="cert-gps-text">4.2m from NIPOST Building Pin</span>
+                    </span>
+                  </div>
+                  <div id="cert-timestamp" class="text-[11px] font-mono text-slate-500 mt-1.5">
+                    Issued: --
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic QR Verification Column -->
+            <div class="md:col-span-4 flex flex-col items-center justify-between bg-[#0B2545] text-white border-2 border-[#D4AF37] rounded-2xl p-4 text-center shadow-lg">
+              <div class="text-[10px] font-mono uppercase tracking-widest text-[#D4AF37] font-bold">
+                Scan to Verify KYC Hash
+              </div>
+              <div class="my-2.5 p-2.5 bg-white rounded-xl border-2 border-[#D4AF37] shadow-md">
+                <img
+                  id="cert-qr-img"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fapi.postcode.gov.ng%2Fverify%2FPVNG-8F92A104C3B1"
+                  alt="Official NIPOST Verification QR Code"
+                  class="w-32 h-32 object-contain"
+                />
+              </div>
+              <div class="w-full space-y-1">
+                <div class="text-[10px] uppercase tracking-wider text-amber-200 font-semibold">SHA-256 Cryptographic Digest</div>
+                <div id="cert-sha256" class="font-mono text-[10px] text-[#D4AF37] truncate bg-[#13315C] px-2 py-1 rounded border border-[#D4AF37]/40">
+                  8F92A104C3B19D4E7A2018F3B910C4E2
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Certificate Footer & PDF Export -->
+          <div class="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="text-xs font-semibold text-[#0B2545] flex items-center gap-2">
+              <i data-lucide="file-check-2" class="w-4 h-4 text-amber-600"></i>
+              <span>CBN Tier-3 CDD, NERC DisCo Enumeration &amp; Microfinance Credit Compliant</span>
+            </div>
+            <button
+              type="button"
+              onclick="window.print()"
+              class="no-print btn-3d-navy inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-white text-xs font-bold cursor-pointer"
+            >
+              <i data-lucide="printer" class="w-4 h-4 text-[#D4AF37]"></i>
+              <span>Export / Print Official PDF Certificate</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live NIPOST API Telemetry Inspector -->
+        <div class="card-3d p-5 space-y-3 no-print">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+            <div class="flex items-center gap-2">
+              <div class="p-1.5 rounded-lg bg-[#0B2545] text-[#D4AF37]">
+                <i data-lucide="terminal" class="w-4 h-4"></i>
+              </div>
+              <h3 class="text-sm font-extrabold text-[#0B2545]">Live NIPOST API Telemetry Inspector</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono font-semibold text-slate-600">GET api.postcode.gov.ng/v1/lookup</span>
+              <span id="telemetry-status-pill" class="px-2.5 py-0.5 rounded-md text-xs font-mono font-extrabold bg-[#0B2545] text-[#D4AF37]">
+                HTTP 200
+              </span>
+              <span id="telemetry-latency-pill" class="px-2.5 py-0.5 rounded-md text-xs font-mono font-bold bg-amber-100 text-[#0B2545] border border-[#D4AF37]">
+                138 ms
+              </span>
+            </div>
+          </div>
+
+          <pre id="telemetry-json" class="bg-[#0B2545] border-2 border-[#D4AF37]/50 rounded-xl p-4 text-xs font-mono text-amber-100 overflow-x-auto max-h-72 leading-relaxed shadow-inner">{
+  "status": "Initializing live NIPOST NDAPS gateway telemetry..."
+}</pre>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    lucide.createIcons();
+
+    // Initialize Leaflet Map
+    let map = L.map('nipost-map', {
+      zoomControl: true,
+      scrollWheelZoom: false
+    }).setView([9.0385, 7.4982], 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors • NIPOST NDAPS Geolocation'
+    }).addTo(map);
+
+    let buildingMarker = null;
+    let geofenceCircle = null;
+    let fraudLine = null;
+    let fraudMarker = null;
+
+    function updateMapPin(lat, lng, postcode, address, buildingUse, isVerified, userLat, userLng) {
+      if (buildingMarker) map.removeLayer(buildingMarker);
+      if (geofenceCircle) map.removeLayer(geofenceCircle);
+      if (fraudLine) map.removeLayer(fraudLine);
+      if (fraudMarker) map.removeLayer(fraudMarker);
+
+      const pinHtml = `
+        <div style="
+          background: #0B2545;
+          color: #D4AF37;
+          border: 2px solid #D4AF37;
+          border-radius: 9999px;
+          width: 34px;
+          height: 34px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 11px;
+          box-shadow: 0 6px 14px rgba(11,37,69,0.45);
+        ">NP</div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: pinHtml,
+        className: '',
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -18]
+      });
+
+      buildingMarker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+      buildingMarker.bindPopup(`
+        <div style="font-family: 'Plus Jakarta Sans', sans-serif; min-width: 210px;">
+          <div style="font-size: 11px; font-weight: 800; color: #0B2545; letter-spacing: 0.04em;">
+            NIPOST BUILDING PIN • ${postcode}
+          </div>
+          <div style="font-size: 12px; font-weight: 700; color: #13315C; margin-top: 3px;">
+            ${address}
+          </div>
+          <div style="font-size: 11px; color: #059669; font-weight: 700; margin-top: 4px;">
+            Use: ${buildingUse} (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)
+          </div>
+        </div>
+      `).openPopup();
+
+      geofenceCircle = L.circle([lat, lng], {
+        color: isVerified ? '#059669' : '#DC2626',
+        fillColor: isVerified ? '#10B981' : '#EF4444',
+        fillOpacity: 0.18,
+        radius: 65
+      }).addTo(map);
+
+      if (!isVerified && userLat && userLng) {
+        const alertHtml = `
+          <div style="
+            background: #DC2626;
+            color: #FFFFFF;
+            border: 2px solid #FFFFFF;
+            border-radius: 9999px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 12px;
+            box-shadow: 0 6px 14px rgba(220,38,38,0.5);
+          ">!</div>
+        `;
+        const alertIcon = L.divIcon({
+          html: alertHtml,
+          className: '',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        fraudMarker = L.marker([userLat, userLng], { icon: alertIcon }).addTo(map)
+          .bindPopup('<b>420km Remote GPS Mismatch!</b><br/>Device outside NIPOST building geofence.');
+        fraudLine = L.polyline([[lat, lng], [userLat, userLng]], {
+          color: '#DC2626',
+          weight: 3,
+          dashArray: '6, 6'
+        }).addTo(map);
+        map.fitBounds([[lat, lng], [userLat, userLng]], { padding: [35, 35] });
+      } else {
+        map.flyTo([lat, lng], 16, { duration: 0.9 });
+      }
+    }
+
+    function updateLiveDecoder(rawValue) {
+      const cleaned = (rawValue || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      document.getElementById('seg-state-code').textContent = cleaned.slice(0, 2) || '--';
+      document.getElementById('seg-lga-code').textContent = cleaned.slice(2, 4) || '--';
+      document.getElementById('seg-district-code').textContent = cleaned.slice(4, 7) || '---';
+      document.getElementById('seg-area-code').textContent = cleaned.slice(7, 9) || '--';
+      document.getElementById('seg-building-code').textContent = cleaned.slice(9, 11) || '--';
+    }
+
+    function loadPreset(postcode, fullName, ninLast4, useCase) {
+      document.getElementById('postcode-input').value = postcode;
+      document.getElementById('full-name-input').value = fullName;
+      document.getElementById('nin-input').value = ninLast4;
+      document.getElementById('use-case-input').value = useCase;
+      updateLiveDecoder(postcode);
+      submitVerification();
+    }
+
+    async function submitVerification(event) {
+      if (event) event.preventDefault();
+
+      const btn = document.getElementById('verify-submit-btn');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span>Validating with NIPOST NDAPS Gateway...</span>';
+
+      const payload = {
+        postcode: document.getElementById('postcode-input').value.trim(),
+        full_name: document.getElementById('full-name-input').value.trim(),
+        nin_last4: document.getElementById('nin-input').value.trim(),
+        use_case: document.getElementById('use-case-input').value,
+        simulate_fraud: document.getElementById('simulate-fraud-toggle').checked
+      };
+
+      try {
+        const response = await fetch('/api/verify-kyc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (!response.ok || data.status === 'error') {
+          alert(data.message || 'Verification failed');
+          return;
+        }
+
+        // 1. Update 5-Segment Hierarchy Decoder
+        if (data.hierarchy) {
+          document.getElementById('seg-state-code').textContent = data.hierarchy.state.code;
+          document.getElementById('seg-state-desc').textContent = data.hierarchy.state.description;
+          document.getElementById('seg-lga-code').textContent = data.hierarchy.lga.code;
+          document.getElementById('seg-lga-desc').textContent = data.hierarchy.lga.description;
+          document.getElementById('seg-district-code').textContent = data.hierarchy.district.code;
+          document.getElementById('seg-district-desc').textContent = data.hierarchy.district.description;
+          document.getElementById('seg-area-code').textContent = data.hierarchy.area.code;
+          document.getElementById('seg-area-desc').textContent = data.hierarchy.area.description;
+          document.getElementById('seg-building-code').textContent = data.hierarchy.building.code;
+          document.getElementById('seg-building-desc').textContent = data.hierarchy.building.description;
+        }
+
+        // 2. Update Map Pin & Geofence
+        const lat = data.property.coordinates.lat;
+        const lng = data.property.coordinates.lng;
+        const uLat = data.gps.user_coordinates.lat;
+        const uLng = data.gps.user_coordinates.lng;
+
+        document.getElementById('map-coords-pill').textContent = `${lat}° N, ${lng}° E`;
+        const mapGpsPill = document.getElementById('map-gps-pill');
+        if (data.verified) {
+          mapGpsPill.textContent = '4.2m Match';
+          mapGpsPill.className = 'text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300';
+        } else {
+          mapGpsPill.textContent = '420km Mismatch Alert!';
+          mapGpsPill.className = 'text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-red-100 text-red-800 border border-red-300';
+        }
+
+        updateMapPin(
+          lat,
+          lng,
+          data.postcode,
+          data.property.recent_house_address,
+          data.property.building_use_status,
+          data.verified,
+          uLat,
+          uLng
+        );
+
+        // 3. Update Official Digital Certificate
+        document.getElementById('postcode-input').value = data.postcode;
+        document.getElementById('cert-postcode').textContent = data.postcode;
+        document.getElementById('cert-customer-name').textContent = data.customer.full_name;
+        document.getElementById('cert-nin').textContent = data.customer.nin_masked;
+        document.getElementById('cert-use-case').textContent = data.customer.use_case;
+        document.getElementById('cert-address').textContent = data.property.recent_house_address;
+        document.getElementById('cert-building-use').textContent = data.property.building_use_status;
+        document.getElementById('cert-trust-badge').textContent = data.trust_score;
+        document.getElementById('cert-hierarchy').textContent =
+          `${data.property.state_name} → ${data.property.lga_name} → ${data.property.district_name}`;
+        document.getElementById('cert-coords').textContent =
+          `NIPOST Pin: ${lat}° N, ${lng}° E`;
+
+        document.getElementById('cert-id').textContent = `ID: ${data.certificate.certificate_id}`;
+        document.getElementById('cert-sha256').textContent = data.certificate.sha256_fingerprint;
+        document.getElementById('cert-timestamp').textContent = `Issued: ${data.certificate.issued_at}`;
+        document.getElementById('cert-qr-img').src = data.certificate.qr_url;
+
+        const gpsBadge = document.getElementById('cert-gps-badge');
+        const certStatusBadge = document.getElementById('cert-status-badge');
+        const trustBadge = document.getElementById('cert-trust-badge');
+        document.getElementById('cert-gps-text').textContent = data.gps.proximity_label;
+        document.getElementById('cert-status-text').textContent = data.verification_badge;
+
+        if (data.verified) {
+          gpsBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-400';
+          certStatusBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-400';
+          trustBadge.className = 'text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-[#D4AF37]';
+        } else {
+          gpsBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-extrabold bg-red-100 text-red-900 border border-red-400';
+          certStatusBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-900 border border-red-400';
+          trustBadge.className = 'text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-red-100 text-red-900 border border-red-400';
+        }
+
+        // 4. Update Top KPI Cards
+        if (data.stats) {
+          document.getElementById('kpi-verified').textContent = data.stats.total_verified;
+          document.getElementById('kpi-saved').textContent = data.stats.naira_saved_formatted;
+          document.getElementById('kpi-fraud').textContent = data.stats.fraud_flagged;
+          document.getElementById('kpi-latency').textContent = `${data.stats.avg_latency_ms} ms`;
+          document.getElementById('kpi-access').textContent = data.stats.access_level;
+        }
+
+        // 5. Update Telemetry Inspector
+        if (data.telemetry) {
+          document.getElementById('telemetry-status-pill').textContent = `HTTP ${data.telemetry.http_status}`;
+          document.getElementById('telemetry-latency-pill').textContent = `${data.telemetry.latency_ms} ms`;
+          document.getElementById('telemetry-json').textContent = JSON.stringify(data.telemetry.raw_json, null, 2);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        lucide.createIcons();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      submitVerification();
+    });
+  </script>
+</body>
+</html>
